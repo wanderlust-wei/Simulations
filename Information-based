@@ -1,0 +1,74 @@
+# two independent random variables
+x1 = rnorm(100,mean=5,sd=0.2)
+x2 = rnorm(100,mean=3,sd=0.2)
+x3 = rnorm(100,mean=1,sd=0.2)
+y1=rnorm(300,mean=2,sd=0.05)
+z1=rnorm(300,mean=2,sd=0.05)
+u1=rnorm(300,mean=2,sd=0.05)
+x1=c(x1,x2,x3)
+id=seq(1,300,1)
+dt=data.frame(id,x1,y1,z1,u1)
+plot(dt,pch=20)
+
+#calculate mutual information
+
+mi_table=matrix(0,nrow = 300,ncol=300)
+for(i in 1:nrow(dt)){
+  print(i)
+  print("begin")
+  for(j in 1:nrow(dt)){
+ mi_table[i,j]=cmi.pw(dt[i,-1], dt[j,-1])$mi
+ print(j)}
+}
+
+#ground truth
+
+gt1=rep("a",100)
+gt2=rep("b",100)
+gt3=rep("c",100)
+gt=c(gt1,gt2,gt3)
+dt$gt=gt
+
+#assign random label
+la=rep(c("a","b","c"),100)
+la=la[sample(c(1:300),300,replace = F)]
+
+dt$la<-la
+ggplot(data=dt,aes(x=x1,y=y1))+geom_point(data=dt,aes(group=gt,color=gt))
+
+#calculate S(C;i)
+#P(i1|C=a)
+groupData <- split(dt, dt$la)
+
+#i1=1 C=a
+i=124
+
+t=matrix(0,nrow=300,ncol=3)
+for ( i in 1:300){
+ii=dt$id[i]
+
+s_C_i=sum(mi_table[ii,c(groupData[[1]]$id)])/100
+ca=mi_table[c(groupData[[1]]$id),c(groupData[[1]]$id)]
+s_Ca= sum( (0.01*rowSums(ca) ) )*0.01
+pa=2*s_C_i-s_Ca
+aa=exp(0.1*pa)*(1/3)
+
+s_C_i=sum(mi_table[ii,c(groupData[[2]]$id)])/100
+cb=mi_table[c(groupData[[2]]$id),c(groupData[[2]]$id)]
+s_Cb= sum( (0.01*rowSums(cb) ) )*0.01
+pb=2*s_C_i-s_Cb
+bb=exp(0.1*pb)*(1/3)
+
+s_C_i=sum(mi_table[ii,c(groupData[[3]]$id)])/100
+cc=mi_table[c(groupData[[3]]$id),c(groupData[[3]]$id)]
+s_Cb= sum( (0.01*rowSums(cc) ) )*0.01
+pc=2*s_C_i-s_C
+cc=exp(0.1*pc)*(1/3)
+
+tt=c(which.max(c(aa,bb,cc)),dt[dt$id==ii,]$la,dt[dt$id==ii,]$gt)
+t[i,]=tt}
+t=data.frame(t)
+t$cl=0
+t[t$X1=="1",]$cl="a"
+t[t$X1=="2",]$cl="b"
+t[t$X1=="3",]$cl="c"
